@@ -7,8 +7,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
 import kotlinx.serialization.descriptors.*
-import kotlinx.serialization.encoding.Decoder
-import kotlinx.serialization.encoding.Encoder
+import kotlinx.serialization.encoding.*
+import net.benwoodworth.knbt.internal.NbtDecodingException
 
 internal object NbtTagSerializer : KSerializer<NbtTag> {
     @OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
@@ -158,6 +158,36 @@ internal class NbtListSerializer<T : NbtTag>(
         val elementDescriptor: SerialDescriptor,
     ) : SerialDescriptor by listSerialDescriptor(elementDescriptor) {
         override val serialName: String = "net.benwoodworth.knbt.NbtList"
+    }
+}
+
+internal class NbtRootSerializer<T>(
+    private val elementSerializer: KSerializer<T>,
+) : KSerializer<NbtRoot<T>> {
+    override val descriptor: SerialDescriptor = NbtRootDescriptor(elementSerializer.descriptor)
+
+    override fun serialize(encoder: Encoder, value: NbtRoot<T>) {
+        encoder.encodeStructure(descriptor) {
+            encodeStringElement(descriptor, 0, value.name)
+            encodeSerializableElement(descriptor, 1, elementSerializer, value.value)
+        }
+    }
+
+    override fun deserialize(decoder: Decoder): NbtRoot<T> {
+        return decoder.decodeStructure(descriptor) {
+            if (decodeElementIndex(descriptor) != 0)
+                throw NbtDecodingException("Missing element for root tag")
+            val name = decodeStringElement(descriptor, 0)
+            val value = decodeSerializableElement(descriptor, 1, elementSerializer)
+            NbtRoot(value, name)
+        }
+    }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    private class NbtRootDescriptor(
+        val elementDescriptor: SerialDescriptor,
+    ) : SerialDescriptor by mapSerialDescriptor(String.serializer().descriptor, elementDescriptor) {
+        override val serialName: String = "net.benwoodworth.knbt.NbtRoot"
     }
 }
 

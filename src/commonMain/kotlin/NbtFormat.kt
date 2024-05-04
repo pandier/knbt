@@ -1,8 +1,6 @@
 package net.benwoodworth.knbt
 
 import kotlinx.serialization.*
-import kotlinx.serialization.descriptors.StructureKind
-import kotlinx.serialization.internal.AbstractPolymorphicSerializer
 import kotlinx.serialization.modules.SerializersModule
 import net.benwoodworth.knbt.internal.*
 
@@ -65,31 +63,10 @@ public inline fun <reified T> NbtFormat.encodeToNbtTag(value: T): NbtTag =
 public inline fun <reified T> NbtFormat.decodeFromNbtTag(tag: NbtTag): T =
     decodeFromNbtTag(serializersModule.serializer(), tag)
 
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 internal fun <T> NbtFormat.encodeToNbtWriter(writer: NbtWriter, serializer: SerializationStrategy<T>, value: T) {
-    val rootSerializer = if (
-        serializer.descriptor.kind == StructureKind.CLASS ||
-        serializer is AbstractPolymorphicSerializer
-    ) {
-        RootClassSerializer(serializer)
-    } else {
-        serializer
-    }
-
-    return DefaultNbtEncoder(this, writer)
-        .encodeSerializableValue(rootSerializer, value)
+    return DefaultNbtEncoder(this, writer).encodeSerializableValue(serializer, value)
 }
 
-@OptIn(ExperimentalSerializationApi::class, InternalSerializationApi::class)
 internal fun <T> NbtFormat.decodeFromNbtReader(reader: NbtReader, deserializer: DeserializationStrategy<T>): T {
-    val rootDeserializer = if (
-        deserializer.descriptor.kind == StructureKind.CLASS ||
-        deserializer is AbstractPolymorphicSerializer
-    ) {
-        RootClassDeserializer(deserializer)
-    } else {
-        deserializer
-    }
-
-    return NbtDecoder(this, reader).decodeSerializableValue(rootDeserializer)
+    return NbtDecoder(this, reader).decodeSerializableValue(deserializer)
 }

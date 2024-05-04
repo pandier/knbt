@@ -177,6 +177,18 @@ public class NbtList<out T : NbtTag> private constructor(
     }
 }
 
+// TODO: Maybe extend NbtTag - this breaks a lot of stuff, because value can be something else than an NbtTag
+//       (probably not a good idea for now)
+@Serializable(NbtRootSerializer::class)
+public class NbtRoot<out T>(
+    public val value: T,
+    public val name: String = "",
+) {
+    override fun equals(other: Any?): Boolean = value == other
+
+    override fun hashCode(): Int = value.hashCode()
+}
+
 @Serializable(NbtCompoundSerializer::class)
 public class NbtCompound(
     private val content: Map<String, NbtTag>,
